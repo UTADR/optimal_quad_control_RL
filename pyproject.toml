@@ -1,0 +1,22 @@
+[project]
+name = "optimal-quad-control-rl"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [{ name = "H S Helson Go", email = "hellston20a@gmail.com" }]
+requires-python = ">=3.12"
+dependencies = [
+  "numpy>=2.4.2",
+  "opencv-python>=4.13.0.92",
+  "scipy>=1.17.1",
+  "stable-baselines3>=2.7.1",
+  "tensorboard>=2.20.0",
+  "torch>=2.10.0",
+]
+
+[project.scripts]
+optimal-quad-control-rl = "optimal_quad_control_rl:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

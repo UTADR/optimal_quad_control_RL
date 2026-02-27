@@ -1,20 +1,31 @@
 # optimal_quad_control_RL
+
 Reinforcement learning for time optimal end-to-end quadcopter control
 
 https://arxiv.org/abs/2504.21586
 
-**Conda**
+## Prerequisites
 
-```
-mkdir -p ~/miniconda3
-wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda3/miniconda.sh
-bash ~/miniconda3/miniconda.sh -b -u -p ~/miniconda3
-rm -rf ~/miniconda3/miniconda.sh
-~/miniconda3/bin/conda init bash
-~/miniconda3/bin/conda init zsh
+We converted `optimal_quad_control_RL` to be managed by the `uv` package
+manager.
 
-conda env list
-conda create --name gncnet
-conda activate gncnet
-conda env update -n gncnet --file quad.yaml
+On a debian-based system, you can run the following commands to get `uv`:
+
+```bash
+sudo apt-get install pipx
+pipx ensurepath
+pipx install uv
 ```
+
+> [!TIP]
+>
+> You can inspect the project dependencies under the `dependencies` section of
+> `pyproject.toml`.
+
+Then, run the main train script with:
+
+```bash
+uv run train.py <session_name> <model_name>
+```
+
+---

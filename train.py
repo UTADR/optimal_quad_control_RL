@@ -1,16 +1,28 @@
 # library imports
+import argparse
 import os
 import sys
-from stable_baselines3 import PPO
 from datetime import datetime
+
+import numpy as np
+import torch
+from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import VecMonitor
 
 # custom imports
-from quad_race_env import *
-from randomization import *
+from optimal_quad_control_rl.quad_race_env import Quadcopter3DGates
+from optimal_quad_control_rl.randomization import (
+    randomization_3inch_10_percent,
+    randomization_3inch_20_percent,
+    randomization_3inch_30_percent,
+    randomization_5inch_10_percent,
+    randomization_5inch_20_percent,
+    randomization_5inch_30_percent,
+    randomization_big,
+    randomization_fixed_params_3inch,
+    randomization_fixed_params_5inch,
+)
 from quadcopter_animation import animation
-
-import argparse
 
 parser = argparse.ArgumentParser(description="Training session configuration")
 
@@ -246,6 +258,7 @@ name = args.name
 #     print(f"Model {name} already exists. Do you want to overwrite it (this will delete the existing model/logs/videos)? (y/n)")
     
 import shutil
+
 if os.path.exists(log_dir + '/' + name + '_0'):
     print("Deleting logs...")
     shutil.rmtree(log_dir + '/' + name + '_0', ignore_errors=True)

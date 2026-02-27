@@ -25,7 +25,21 @@ pipx install uv
 Then, run the main train script with:
 
 ```bash
-uv run train.py <session_name> <model_name>
+uv run train.py 5inch_drone run0_5inch_10_percent --randomization 5inch_30_percent
 ```
+
+Finally, run the visualization script:
+
+```bash
+uv run simulate.py
+```
+
+> [!NOTE]
+>
+> At the time of writing, the simulation script hard-codes the path to the
+> trained model, forcing `5inch_drone` as the session name,
+> `run0_5inch_10_percent` as the drone name, and `5inch_30_percent` as the
+> randomization name. You can change these values in `simulate.py` if you want
+> to visualize a different model.
 
 ---

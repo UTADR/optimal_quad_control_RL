@@ -2,7 +2,7 @@ from stable_baselines3 import PPO
 import matplotlib.pyplot as plt
 from optimal_quad_control_rl.quad_race_env import Quadcopter3DGates
 from optimal_quad_control_rl.randomization import *
-from quadcopter_animation import animation
+from optimal_quad_control_rl.quadcopter_animation import animation
 
 
 env = Quadcopter3DGates(

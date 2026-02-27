@@ -22,7 +22,7 @@ from optimal_quad_control_rl.randomization import (
     randomization_fixed_params_3inch,
     randomization_fixed_params_5inch,
 )
-from quadcopter_animation import animation
+from optimal_quad_control_rl.quadcopter_animation import animation
 
 parser = argparse.ArgumentParser(description="Training session configuration")
 

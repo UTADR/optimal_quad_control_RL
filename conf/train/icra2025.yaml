@@ -1,0 +1,10 @@
+session_name: "5inch_drone"
+name: "run0_5inch_10_percent"
+pi: [64, 64]
+vf: [64, 64]
+state_history: 0
+action_history: 0
+history_step_size: 1
+param_input: false
+param_input_noise: 0.0
+randomization: "5inch_30_percent" # Options: randomized, fixed_5inch, fixed_3inch, etc.

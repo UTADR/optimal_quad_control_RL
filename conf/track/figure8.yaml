@@ -1,0 +1,17 @@
+# Track definition for a figure-8 (using r=1.5)
+gate_pos:
+  - [1.5, -1.5, -1.5]
+  - [0.0, 0.0, -1.5]
+  - [-1.5, 1.5, -1.5]
+  - [0.0, 3.0, -1.5]
+  - [1.5, 1.5, -1.5]
+  - [0.0, 0.0, -1.5]
+  - [-1.5, -1.5, -1.5]
+  - [0.0, -3.0, -1.5]
+
+# Yaw values (pre-multiplied by pi/2)
+gate_yaw: [1, 2, 1, 0, -1, -2, -1, 0]
+
+gate_yaw_unit: "multiples_pi_2"
+
+start_pos: [1.5, 0.5, 0.0]

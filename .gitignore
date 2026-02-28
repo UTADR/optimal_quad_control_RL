@@ -172,3 +172,5 @@ c_code/
 *.csv
 *.mp4
 *.npz
+
+outputs

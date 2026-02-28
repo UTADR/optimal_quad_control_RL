@@ -105,3 +105,16 @@ def randomization_big(num):
         'w_min': w_min,
         'w_max': w_max        
     }
+
+RANDOMIZATION_ALGORITHMS = {
+    "randomized": randomization_big,
+    "fixed_params_5inch": randomization_fixed_params_5inch,
+    "5inch_10_percent": randomization_5inch_10_percent,
+    "5inch_20_percent": randomization_5inch_20_percent,
+    "5inch_30_percent": randomization_5inch_30_percent,
+    "fixed_params_3inch": randomization_fixed_params_3inch,
+    "3inch_10_percent": randomization_3inch_10_percent,
+    "3inch_20_percent": randomization_3inch_20_percent,
+    "3inch_30_percent": randomization_3inch_30_percent,
+
+}

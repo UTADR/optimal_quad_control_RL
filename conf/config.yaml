@@ -1,0 +1,3 @@
+defaults:
+  - train: icra2025
+  - track: figure8

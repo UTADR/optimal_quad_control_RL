@@ -383,13 +383,13 @@ class Quadcopter3DGates(VecEnv):
 
         # Update positions
         pos_W = self.world_states[:, 0:3]
-        pos_G = (pos_W[:, np.newaxis, 0:2] - gate_pos[:, np.newaxis, 0:2]) @ R
+        pos_G = (pos_W[:, None, 0:2] - gate_pos[:, None, 0:2]) @ R
         new_states[:, 0:2] = pos_G[:, 0, :]
         new_states[:, 2] = pos_W[:, 2] - gate_pos[:, 2]
 
         # Update velocities
         vel_W = self.world_states[:, 3:6]
-        vel_G = (vel_W[:, np.newaxis, 0:2]) @ R
+        vel_G = (vel_W[:, None, 0:2]) @ R
         new_states[:, 3:5] = vel_G[:, 0, :]
         new_states[:, 5] = vel_W[:, 2]
 

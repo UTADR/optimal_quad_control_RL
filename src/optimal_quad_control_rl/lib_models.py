@@ -22,7 +22,9 @@
 import math
 from enum import Enum
 from pathlib import Path
+
 from pydantic import BaseModel, Field, computed_field, model_validator
+
 
 class TrainConfig(BaseModel):
     session_name: str = Field(..., description="Session Name")
@@ -89,5 +91,3 @@ class RaceTrackConfig(BaseModel):
         elif self.gate_yaw_unit == RaceTrackYawUnit.multiples_pi_2:
             self.gate_yaw = [yaw * math.pi / 2 for yaw in self.gate_yaw]
         return self
-
-

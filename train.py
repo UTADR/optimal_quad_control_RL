@@ -13,6 +13,7 @@ import torch
 from omegaconf import DictConfig
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import VecMonitor
+from tqdm import tqdm
 
 from optimal_quad_control_rl import lib_models
 
@@ -25,16 +26,20 @@ from optimal_quad_control_rl.randomization import RANDOMIZATION_ALGORITHMS
 def train(model, test_env, log_name, models_dir, video_log_dir, env, n=int(1e8)):
     # save every 10 policy rollouts
     TIMESTEPS = model.n_steps * env.num_envs * 10
-    while model.num_timesteps < n:
-        model.learn(
-            total_timesteps=TIMESTEPS,
-            reset_num_timesteps=False,
-            tb_log_name=log_name,
-        )
-        time_steps = model.num_timesteps
-        # save model
-        model.save(models_dir / log_name / str(time_steps))
-        print("Model saved at", models_dir / log_name / str(time_steps))
+
+    with tqdm(total=n, initial=model.num_timesteps, desc="Training Progress") as pbar:
+        while model.num_timesteps < n:
+            prev_time_steps = model.num_timesteps
+            model.learn(
+                total_timesteps=TIMESTEPS,
+                reset_num_timesteps=False,
+                tb_log_name=log_name,
+            )
+            time_steps = model.num_timesteps
+            pbar.update(time_steps - prev_time_steps)
+            # save model
+            model.save(models_dir / log_name / str(time_steps))
+            print("Model saved at", models_dir / log_name / str(time_steps))
         # save policy animation
         # animate_policy(
         #     model,

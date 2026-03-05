@@ -25,7 +25,7 @@ pipx install uv
 Then, run the main train script with:
 
 ```bash
-uv run train.py 5inch_drone run0_5inch_10_percent --randomization 5inch_30_percent
+uv run train.py
 ```
 
 Finally, run the visualization script:

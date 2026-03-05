@@ -1,6 +1,5 @@
 from omegaconf import DictConfig
 from stable_baselines3 import PPO
-import matplotlib.pyplot as plt
 from optimal_quad_control_rl.quad_race_env import Quadcopter3DGates
 from optimal_quad_control_rl import lib_models, randomization
 from optimal_quad_control_rl.quadcopter_animation import animation

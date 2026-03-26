@@ -268,7 +268,7 @@ class QuadcopterWaypointNav(VecEnv):
         out_of_bounds |= np.any(np.abs(new_states[:, 9:12]) > 1000, axis=1)
         rewards[out_of_bounds] = -10.0
 
-        all_wps_reached = ~self.loop_waypoints & (self.target_wps >= self.num_wps)
+        all_wps_reached = (not self.loop_waypoints) & (self.target_wps >= self.num_wps)
         rewards[all_wps_reached] = 10.0
 
         max_steps_reached = self.step_counts >= self.max_steps

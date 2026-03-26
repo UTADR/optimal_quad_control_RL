@@ -66,6 +66,15 @@ class TrainConfig(BaseModel):
         return self
 
 
+class WaypointRouteConfig(BaseModel):
+    waypoints: list[tuple[float, float, float]] = Field(
+        ..., description="Ordered 3-D waypoint positions"
+    )
+    start_pos: tuple[float, float, float] | None = Field(
+        default=None, description="Start position (defaults to first waypoint)"
+    )
+
+
 class RaceTrackYawUnit(str, Enum):
     radians = "radians"
     degrees = "degrees"

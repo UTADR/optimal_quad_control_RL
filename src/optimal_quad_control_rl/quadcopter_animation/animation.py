@@ -1,8 +1,11 @@
 import time
+from collections import deque
 
 import numpy as np
 import rerun as rr
 import scipy.spatial.transform as spt
+
+_TRAIL_MAX_LEN = 2000  # positions kept per drone
 
 _GATE_SIZE = 1.5  # gate side length in metres
 _DRONE_ARM_RADIUS = 0.08  # arm half-span (m)
@@ -52,6 +55,7 @@ def view(
     fps: float = 100,
     gate_pos=(),
     gate_yaw=(),
+    waypoints=(),
 ):
     """Real-time quadrotor visualisation via Rerun.
 
@@ -67,6 +71,9 @@ def view(
         Sequence of (x, y, z) gate centre positions.
     gate_yaw:
         Sequence of gate yaw angles (radians), one per gate.
+    waypoints:
+        Sequence of (x, y, z) waypoint positions.  Rendered as static
+        point markers.
     """
     rr.init("quadrotor_sim", spawn=True)
 
@@ -79,7 +86,17 @@ def view(
             static=True,
         )
 
+    # Waypoints are static — logged once as point markers
+    if len(waypoints):
+        wp_arr = np.asarray(waypoints, dtype=float)
+        rr.log(
+            "world/waypoints",
+            rr.Points3D(wp_arr, radii=0.08, colors=[[0, 220, 100]]),
+            static=True,
+        )
+
     logged_drone_indices: set[int] = set()
+    trails: dict[int, deque] = {}
     sim_time = 0.0
     dt = float(1.0 / fps)
 
@@ -101,25 +118,28 @@ def view(
 
             rr.set_time("sim_time", timestamp=sim_time)
 
-            for i, (ps, qs) in enumerate(
-                zip(
-                    positions,
-                    orientations,
-                )
-            ):
+            for i, (ps, qs) in enumerate(zip(positions, orientations)):
                 # Log body geometry once as static under each drone entity
                 if i not in logged_drone_indices:
                     rr.log(
-                        f"world/drone/{i}/body",
+                        f"world/drone/{i}/pose/body",
                         rr.LineStrips3D(_DRONE_STRIPS, colors=[[255, 0, 0]]),
                         static=True,
                     )
                     logged_drone_indices.add(i)
+                    trails[i] = deque(maxlen=_TRAIL_MAX_LEN)
 
                 rr.log(
-                    f"world/drone/{i}",
+                    f"world/drone/{i}/pose",
                     rr.Transform3D(translation=ps, rotation=rr.Quaternion(xyzw=qs)),
                 )
+
+                trails[i].append(ps.tolist())
+                if len(trails[i]) >= 2:
+                    rr.log(
+                        f"world/drone/{i}/trail",
+                        rr.LineStrips3D([list(trails[i])], colors=[[255, 180, 0]]),
+                    )
 
             sim_time += dt
             elapsed = time.monotonic() - t_loop_start

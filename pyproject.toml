@@ -27,6 +27,9 @@ optimal-quad-control-rl = "optimal_quad_control_rl:main"
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.pytest.ini_options]
+pythonpath = ["."]
+
 [dependency-groups]
 dev = [
     "pytest>=9.0.2",

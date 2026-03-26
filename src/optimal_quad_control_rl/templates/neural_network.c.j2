@@ -1,0 +1,41 @@
+#include "neural_network.h"
+#include <stdio.h>
+#include <math.h>
+
+{% for layer in linear_layers %}
+const float weights_fc{{ layer.idx }}[] = {
+{{ layer.weights_str }}
+};
+
+const float biases_fc{{ layer.idx }}[] = {
+{{ layer.biases_str }}
+};
+
+{% endfor %}
+void nn_linear(const float* weights, const float* biases, const float* input, int in_features, int out_features, float* output) {
+    for (int i = 0; i < out_features; ++i) {
+        float neuron = biases[i];
+        for (int j = 0; j < in_features; ++j) {
+            neuron += input[j] * weights[i * in_features + j];
+        }
+        output[i] = neuron;
+    }
+}
+
+void nn_relu(float* input, int size) {
+    for (int i = 0; i < size; ++i) {
+        input[i] = fmaxf(0, input[i]);
+    }
+}
+
+void nn_tanh(float* input, int size) {
+    for (int i = 0; i < size; ++i) {
+        input[i] = tanh(input[i]);
+    }
+}
+
+void nn_forward(const float* input, float* output) {
+{% for step in forward_steps %}
+    {{ step }}
+{% endfor %}
+}

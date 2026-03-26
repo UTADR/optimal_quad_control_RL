@@ -1,24 +1,9 @@
-import sys
-
 import numpy as np
-import stable_baselines3
 import torch
+from gymnasium import spaces
+from stable_baselines3.common.vec_env import VecEnv
 
 from optimal_quad_control_rl import quad_model
-
-print("python version:", sys.version)
-print("stable_baselines3 version:", stable_baselines3.__version__)
-print("torch version:", torch.__version__)
-print("cuda available:", torch.cuda.is_available())
-print("cuda version:", torch.version.cuda)
-print("cudnn version:", torch.backends.cudnn.version())
-
-# set device
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print("device:", device)
-
-# set torch default device
-torch.set_default_device(device)
 
 params = [
     "k_x",
@@ -46,9 +31,6 @@ params = [
     "w_max",
 ]
 
-# Efficient vectorized version of the environment
-from gymnasium import spaces
-from stable_baselines3.common.vec_env import VecEnv
 
 # DEFINE RACE TRACK
 r = 1.5

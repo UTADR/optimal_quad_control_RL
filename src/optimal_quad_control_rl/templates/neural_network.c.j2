@@ -1,18 +1,59 @@
 #include "neural_network.h"
-#include <stdio.h>
 #include <math.h>
+#include <stdio.h>
+
+/* ---- Deployment constants (baked at export time) ---- */
+
+const float output_std[NN_OUTPUT_SIZE] = {
+{% for v in output_std %}
+    {{ v }}f,
+{% endfor %}
+};
+
+const float gate_pos[NUM_GATES][3] = {
+{% for p in gate_pos %}
+    { {{ p[0] }}f, {{ p[1] }}f, {{ p[2] }}f },
+{% endfor %}
+};
+
+const float gate_yaw[NUM_GATES] = {
+{% for y in gate_yaw %}
+    {{ y }}f,
+{% endfor %}
+};
+
+const float gate_pos_rel[NUM_GATES][3] = {
+{% for p in gate_pos_rel %}
+    { {{ p[0] }}f, {{ p[1] }}f, {{ p[2] }}f },
+{% endfor %}
+};
+
+const float gate_yaw_rel[NUM_GATES] = {
+{% for y in gate_yaw_rel %}
+    {{ y }}f,
+{% endfor %}
+};
+
+const float start_pos[3] = { {{ start_pos[0] }}f, {{ start_pos[1] }}f, {{ start_pos[2] }}f };
+const float start_yaw = {{ start_yaw }}f;
+
+/* ---- Weights and biases (baked at export time) ---- */
 
 {% for layer in linear_layers %}
-const float weights_fc{{ layer.idx }}[] = {
+static const float weights_fc{{ layer.idx }}[] = {
 {{ layer.weights_str }}
 };
 
-const float biases_fc{{ layer.idx }}[] = {
+static const float biases_fc{{ layer.idx }}[] = {
 {{ layer.biases_str }}
 };
 
 {% endfor %}
-void nn_linear(const float* weights, const float* biases, const float* input, int in_features, int out_features, float* output) {
+/* ---- Network primitives ---- */
+
+static void nn_linear(const float *weights, const float *biases,
+                      const float *input, int in_features, int out_features,
+                      float *output) {
     for (int i = 0; i < out_features; ++i) {
         float neuron = biases[i];
         for (int j = 0; j < in_features; ++j) {
@@ -22,19 +63,21 @@ void nn_linear(const float* weights, const float* biases, const float* input, in
     }
 }
 
-void nn_relu(float* input, int size) {
+static void nn_relu(float *x, int size) {
     for (int i = 0; i < size; ++i) {
-        input[i] = fmaxf(0, input[i]);
+        x[i] = fmaxf(0.0f, x[i]);
     }
 }
 
-void nn_tanh(float* input, int size) {
+static void nn_tanh(float *x, int size) {
     for (int i = 0; i < size; ++i) {
-        input[i] = tanh(input[i]);
+        x[i] = tanhf(x[i]);
     }
 }
 
-void nn_forward(const float* input, float* output) {
+/* ---- Forward pass ---- */
+
+void nn_forward(const float *input, float *output) {
 {% for step in forward_steps %}
     {{ step }}
 {% endfor %}

@@ -49,12 +49,12 @@ def main():
         shutil.rmtree(args.out_dir)
     os.makedirs(args.out_dir)
 
-    nn_src, nn_hdr = export.generate_neural_network(network, args.out_dir)
-    ctrl_src, ctrl_hdr = export.generate_controller(
-        network_std, test_env, w_min_n, w_max_n, args.out_dir
+    nn_src, nn_hdr = export.generate_neural_network(
+        network, test_env, network_std, w_min_n, w_max_n, args.out_dir
     )
+    ctrl_src, ctrl_hdr = export.emit_controller(args.out_dir)
     print(f"Generated {nn_src}, {nn_hdr}")
-    print(f"Generated {ctrl_src}, {ctrl_hdr}")
+    print(f"Copied    {ctrl_src}, {ctrl_hdr}")
 
     lib = export.build_library(args.out_dir)
 

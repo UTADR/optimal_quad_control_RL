@@ -1,5 +1,5 @@
 import ctypes
-import os
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -12,6 +12,8 @@ from stable_baselines3 import PPO
 from optimal_quad_control_rl.quad_race_env import Quadcopter3DGates
 
 _TEMPLATES_DIR = Path(__file__).parent / "templates"
+_STATIC_DIR = Path(__file__).parent / "static"
+
 _env = Environment(
     loader=FileSystemLoader(_TEMPLATES_DIR),
     trim_blocks=True,
@@ -19,10 +21,6 @@ _env = Environment(
     keep_trailing_newline=True,
     undefined=StrictUndefined,
 )
-
-
-def float_to_str(x):
-    return str(float(x))
 
 
 def load_network(model_path: str):
@@ -42,11 +40,15 @@ def _build_nn_context(network: nn.Sequential) -> dict:
         if isinstance(layer, nn.Linear):
             weights = layer.weight.data.cpu().numpy()
             biases = layer.bias.data.cpu().numpy()
-            linear_layers.append({
-                "idx": i,
-                "weights_str": ",\n".join(", ".join(map(float_to_str, row)) for row in weights),
-                "biases_str": ", ".join(map(float_to_str, biases)),
-            })
+            linear_layers.append(
+                {
+                    "idx": i,
+                    "weights_str": ",\n".join(
+                        ", ".join(str(float(v)) for v in row) for row in weights
+                    ),
+                    "biases_str": ", ".join(str(float(v)) for v in biases),
+                }
+            )
             i += 1
 
     forward_steps = []
@@ -76,51 +78,62 @@ def _build_nn_context(network: nn.Sequential) -> dict:
         else:
             raise ValueError(f"Unsupported layer type: {type(layer)}")
 
-    return {"linear_layers": linear_layers, "forward_steps": forward_steps}
+    linear_list = [l for l in network if isinstance(l, nn.Linear)]
+    input_size = linear_list[0].in_features
+    output_size = linear_list[-1].out_features
+
+    return {
+        "linear_layers": linear_layers,
+        "forward_steps": forward_steps,
+        "input_size": input_size,
+        "output_size": output_size,
+    }
 
 
-def generate_neural_network(network: nn.Sequential, output_dir: str):
-    ctx = _build_nn_context(network)
-    source_path = os.path.join(output_dir, "neural_network.c")
-    header_path = os.path.join(output_dir, "neural_network.h")
-    Path(source_path).write_text(_env.get_template("neural_network.c.j2").render(ctx))
-    Path(header_path).write_text(_env.get_template("neural_network.h.j2").render())
-    return source_path, header_path
-
-
-def generate_controller(
-    network_std: np.ndarray,
+def generate_neural_network(
+    network: nn.Sequential,
     test_env: Quadcopter3DGates,
+    network_std: np.ndarray,
     w_min_n: float,
     w_max_n: float,
     output_dir: str,
 ):
-    name = "nn_controller"
-    motor_lim = test_env.motor_limit
-    ctx = {
-        "name": name,
-        "num_gates": test_env.num_gates,
-        "gates_ahead": test_env.gates_ahead,
-        "output_std": [float(v) for v in network_std],
-        "gate_pos": [[float(v) for v in p] for p in test_env.gate_pos],
-        "gate_yaw": [float(v) for v in test_env.gate_yaw],
-        "start_pos": [float(v) for v in test_env.start_pos],
-        "start_yaw": float(test_env.gate_yaw[0]),
-        "gate_pos_rel": [[float(v) for v in p] for p in test_env.gate_pos_rel],
-        "gate_yaw_rel": [float(v) for v in test_env.gate_yaw_rel],
-        "w_min": w_min_n,
-        "w_max": w_max_n,
-        "u_max": 2 * motor_lim - 1,
-    }
-    source_path = os.path.join(output_dir, f"{name}.c")
-    header_path = os.path.join(output_dir, f"{name}.h")
-    Path(source_path).write_text(_env.get_template("nn_controller.c.j2").render(ctx))
-    Path(header_path).write_text(_env.get_template("nn_controller.h.j2").render(ctx))
-    return source_path, header_path
+    """Generate neural_network.{c,h} — W&B, forward pass, and all deployment constants."""
+    ctx = _build_nn_context(network)
+    ctx.update(
+        {
+            "num_gates": test_env.num_gates,
+            "gates_ahead": test_env.gates_ahead,
+            "output_std": [float(v) for v in network_std],
+            "gate_pos": [[float(v) for v in p] for p in test_env.gate_pos],
+            "gate_yaw": [float(v) for v in test_env.gate_yaw],
+            "gate_pos_rel": [[float(v) for v in p] for p in test_env.gate_pos_rel],
+            "gate_yaw_rel": [float(v) for v in test_env.gate_yaw_rel],
+            "start_pos": [float(v) for v in test_env.start_pos],
+            "start_yaw": float(test_env.gate_yaw[0]),
+            "w_min": w_min_n,
+            "w_max": w_max_n,
+            "u_max": float(2 * test_env.motor_limit - 1),
+        }
+    )
+    out = Path(output_dir)
+    source_path = out / "neural_network.c"
+    header_path = out / "neural_network.h"
+    source_path.write_text(_env.get_template("neural_network.c.j2").render(ctx))
+    header_path.write_text(_env.get_template("neural_network.h.j2").render(ctx))
+    return str(source_path), str(header_path)
+
+
+def emit_controller(output_dir: str):
+    """Copy the hand-written nn_controller.{c,h} into the output directory."""
+    out = Path(output_dir)
+    for name in ("nn_controller.c", "nn_controller.h"):
+        shutil.copy(_STATIC_DIR / name, out / name)
+    return str(out / "nn_controller.c"), str(out / "nn_controller.h")
 
 
 def build_library(output_dir: str) -> ctypes.CDLL:
-    abs_dir = os.path.abspath(output_dir)
+    abs_dir = str(Path(output_dir).resolve())
     subprocess.run("gcc -fPIC -c *.c", shell=True, cwd=abs_dir, check=True)
     subprocess.run(
         "gcc -shared -Wl,-soname,libtools.so -o libtools.so *.o",
@@ -129,7 +142,7 @@ def build_library(output_dir: str) -> ctypes.CDLL:
         check=True,
     )
     subprocess.run("rm *.o", shell=True, cwd=abs_dir, check=True)
-    lib = ctypes.CDLL(os.path.join(abs_dir, "libtools.so"))
+    lib = ctypes.CDLL(str(Path(abs_dir) / "libtools.so"))
     lib.nn_forward.argtypes = [
         ctypes.POINTER(ctypes.c_float),
         ctypes.POINTER(ctypes.c_float),
@@ -152,7 +165,7 @@ def c_network(lib: ctypes.CDLL, x: np.ndarray) -> np.ndarray:
 
 
 def torch_network_infer(network: nn.Sequential, x: np.ndarray) -> np.ndarray:
-    t = torch.tensor(x, dtype=torch.float32)
+    t = torch.tensor(x, dtype=torch.float32, device="cuda")
     return np.clip(network(t).cpu().detach().numpy(), -1, 1)
 
 

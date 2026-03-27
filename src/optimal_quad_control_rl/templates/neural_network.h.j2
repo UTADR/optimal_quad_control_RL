@@ -1,6 +1,25 @@
 #ifndef NEURAL_NETWORK_H
 #define NEURAL_NETWORK_H
 
-void nn_forward(const float* input, float* output);
+#include <stdbool.h>
+#include <stdint.h>
 
-#endif // NEURAL_NETWORK_H
+#define NN_INPUT_SIZE  {{ input_size }}
+#define NN_OUTPUT_SIZE {{ output_size }}
+#define NUM_GATES      {{ num_gates }}
+#define GATES_AHEAD    {{ gates_ahead }}
+#define W_MIN          {{ w_min }}f
+#define W_MAX          {{ w_max }}f
+#define U_MAX          {{ u_max }}f
+
+extern const float output_std[NN_OUTPUT_SIZE];
+extern const float gate_pos[NUM_GATES][3];
+extern const float gate_yaw[NUM_GATES];
+extern const float gate_pos_rel[NUM_GATES][3];
+extern const float gate_yaw_rel[NUM_GATES];
+extern const float start_pos[3];
+extern const float start_yaw;
+
+void nn_forward(const float *input, float *output);
+
+#endif /* NEURAL_NETWORK_H */

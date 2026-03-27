@@ -174,3 +174,4 @@ c_code/
 *.npz
 
 outputs
+tests/golden

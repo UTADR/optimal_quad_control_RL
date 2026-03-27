@@ -175,3 +175,4 @@ c_code/
 
 outputs
 tests/golden
+drone_controller/src/generated.rs

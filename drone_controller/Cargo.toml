@@ -1,0 +1,8 @@
+[package]
+name = "drone_controller"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+libm = "0.2"
+nalgebra = { version = "0.34.1", default-features = false, features = ["libm"] }

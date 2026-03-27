@@ -1,0 +1,13 @@
+[package]
+name = "nn_controller"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "nn_controller"
+crate-type = ["cdylib"]
+
+[dependencies]
+drone_controller = { path = "../drone_controller" }
+pyo3 = { version = "0.23", features = ["extension-module"] }
+rand = "0.8"

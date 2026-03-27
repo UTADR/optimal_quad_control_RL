@@ -10,6 +10,7 @@ dependencies = [
   "hydra-core>=1.3.2",
   "jinja2>=3.1.6",
   "matplotlib>=3.10.8",
+  "nn_controller",
   "numpy>=2.4.2",
   "opencv-python>=4.13.0.92",
   "pydantic>=2.12.5",
@@ -29,10 +30,14 @@ optimal-quad-control-rl = "optimal_quad_control_rl:main"
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.uv.sources]
+nn_controller = { path = "nn_controller", editable = true }
+
 [tool.pytest.ini_options]
 pythonpath = ["."]
 
 [dependency-groups]
 dev = [
+    "maturin>=1.4,<2.0",
     "pytest>=9.0.2",
 ]

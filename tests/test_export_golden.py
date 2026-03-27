@@ -1,4 +1,5 @@
 import ctypes
+import importlib
 from pathlib import Path
 
 import numpy as np
@@ -9,8 +10,10 @@ import torch.nn as nn
 from optimal_quad_control_rl.export import (
     NNCtx,
     build_library,
+    build_rust,
     emit_controller,
     generate_neural_network,
+    generate_rust,
 )
 from optimal_quad_control_rl.quad_race_env import (
     Quadcopter3DGates,
@@ -121,3 +124,29 @@ def test_nn_control_golden(lib, request):
     lib.nn_set_deterministic(ctypes.byref(ctx), True)
     outputs = np.array([_nn_control(lib, ctx, ws) for ws in NN_CONTROL_INPUTS])
     _check_or_update(outputs, GOLDEN_DIR / "nn_control.npy", update)
+
+
+@pytest.fixture(scope="module")
+def rust_ctrl(network, network_std, env):
+    generate_rust(
+        network, env, network_std,
+        params_5inch["w_min"], params_5inch["w_max"],
+        "drone_controller",
+    )
+    build_rust("nn_controller")
+    import nn_controller as _nc
+    importlib.reload(_nc)
+    return _nc.NNController()
+
+
+def test_rust_control_matches_c(lib, rust_ctrl):
+    """Rust and C controllers must produce bit-identical outputs on the same inputs."""
+    ctx = lib.nn_ctx_init()
+    lib.nn_set_deterministic(ctypes.byref(ctx), True)
+
+    c_outputs = np.array([_nn_control(lib, ctx, ws) for ws in NN_CONTROL_INPUTS])
+    rust_outputs = np.array(
+        [rust_ctrl.control(ws.tolist()) for ws in NN_CONTROL_INPUTS]
+    )
+
+    np.testing.assert_allclose(rust_outputs, c_outputs, atol=1e-5)

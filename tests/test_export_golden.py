@@ -7,8 +7,9 @@ import torch
 import torch.nn as nn
 
 from optimal_quad_control_rl.export import (
+    NNCtx,
     build_library,
-    generate_controller,
+    emit_controller,
     generate_neural_network,
 )
 from optimal_quad_control_rl.quad_race_env import (
@@ -68,10 +69,12 @@ def env():
 @pytest.fixture(scope="module")
 def lib(network, network_std, env, tmp_path_factory):
     out = tmp_path_factory.mktemp("c_code")
-    generate_neural_network(network, str(out))
-    generate_controller(
-        network_std, env, params_5inch["w_min"], params_5inch["w_max"], str(out)
+    generate_neural_network(
+        network, env, network_std,
+        params_5inch["w_min"], params_5inch["w_max"],
+        str(out),
     )
+    emit_controller(str(out))
     return build_library(str(out))
 
 
@@ -83,11 +86,11 @@ def _nn_forward(lib: ctypes.CDLL, x: np.ndarray) -> np.ndarray:
     return np.array(c_out[:])
 
 
-def _nn_control(lib: ctypes.CDLL, world_state: np.ndarray) -> np.ndarray:
+def _nn_control(lib: ctypes.CDLL, ctx: NNCtx, world_state: np.ndarray) -> np.ndarray:
     ws = np.asarray(world_state, dtype=np.float32)
     c_in = (ctypes.c_float * len(ws))(*ws)
     c_out = (ctypes.c_float * 4)()
-    lib.nn_control(c_in, c_out)
+    lib.nn_control(ctypes.byref(ctx), c_in, c_out)
     return np.array(c_out[:])
 
 
@@ -114,10 +117,7 @@ def test_nn_forward_matches_torch(lib, network):
 
 def test_nn_control_golden(lib, request):
     update = request.config.getoption("--update-golden")
-    lib.nn_reset()
-    lib.nn_set_deterministic(True)
-    try:
-        outputs = np.array([_nn_control(lib, ws) for ws in NN_CONTROL_INPUTS])
-        _check_or_update(outputs, GOLDEN_DIR / "nn_control.npy", update)
-    finally:
-        lib.nn_set_deterministic(False)
+    ctx = lib.nn_ctx_init()
+    lib.nn_set_deterministic(ctypes.byref(ctx), True)
+    outputs = np.array([_nn_control(lib, ctx, ws) for ws in NN_CONTROL_INPUTS])
+    _check_or_update(outputs, GOLDEN_DIR / "nn_control.npy", update)

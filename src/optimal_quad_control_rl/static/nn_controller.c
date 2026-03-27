@@ -3,34 +3,39 @@
 #include <math.h>
 #include <stdlib.h>
 
-static bool deterministic = false;
-uint8_t target_gate_index = 0;
+nn_ctx_t nn_ctx_init(void) {
+  nn_ctx_t ctx = {0, false};
+  return ctx;
+}
 
-void nn_reset(void) { target_gate_index = 0; }
+void nn_reset(nn_ctx_t* ctx) { ctx->target_gate_index = 0; }
 
-void nn_set_deterministic(bool value) { deterministic = value; }
+void nn_set_deterministic(nn_ctx_t* ctx, bool value) {
+  ctx->deterministic = value;
+}
 
-void nn_control(const float world_state[16], float motor_cmds[4]) {
+void nn_control(nn_ctx_t* ctx, const float world_state[16],
+                float motor_cmds[4]) {
   const float* pos = &world_state[0];
   const float* vel = &world_state[3];
   float yaw = world_state[8];
 
   float target_pos[3] = {
-      gate_pos[target_gate_index][0],
-      gate_pos[target_gate_index][1],
-      gate_pos[target_gate_index][2],
+      gate_pos[ctx->target_gate_index][0],
+      gate_pos[ctx->target_gate_index][1],
+      gate_pos[ctx->target_gate_index][2],
   };
-  float target_yaw = gate_yaw[target_gate_index];
+  float target_yaw = gate_yaw[ctx->target_gate_index];
 
   /* Advance gate index when drone crosses the gate plane */
   if (cosf(target_yaw) * (pos[0] - target_pos[0]) +
           sinf(target_yaw) * (pos[1] - target_pos[1]) >
       0.0f) {
-    target_gate_index = (target_gate_index + 1) % NUM_GATES;
-    target_pos[0] = gate_pos[target_gate_index][0];
-    target_pos[1] = gate_pos[target_gate_index][1];
-    target_pos[2] = gate_pos[target_gate_index][2];
-    target_yaw = gate_yaw[target_gate_index];
+    ctx->target_gate_index = (ctx->target_gate_index + 1) % NUM_GATES;
+    target_pos[0] = gate_pos[ctx->target_gate_index][0];
+    target_pos[1] = gate_pos[ctx->target_gate_index][1];
+    target_pos[2] = gate_pos[ctx->target_gate_index][2];
+    target_yaw = gate_yaw[ctx->target_gate_index];
   }
 
   float c = cosf(target_yaw), s = sinf(target_yaw);
@@ -69,7 +74,7 @@ void nn_control(const float world_state[16], float motor_cmds[4]) {
         (world_state[12 + k] - W_MIN) * 2.0f / (W_MAX - W_MIN) - 1.0f;
   }
   for (int i = 0; i < GATES_AHEAD; i++) {
-    uint8_t idx = (target_gate_index + i + 1) % NUM_GATES;
+    uint8_t idx = (ctx->target_gate_index + i + 1) % NUM_GATES;
     nn_input[16 + 4 * i] = gate_pos_rel[idx][0];
     nn_input[16 + 4 * i + 1] = gate_pos_rel[idx][1];
     nn_input[16 + 4 * i + 2] = gate_pos_rel[idx][2];
@@ -79,7 +84,7 @@ void nn_control(const float world_state[16], float motor_cmds[4]) {
   float nn_output[NN_OUTPUT_SIZE];
   nn_forward(nn_input, nn_output);
 
-  if (!deterministic) {
+  if (!ctx->deterministic) {
     for (int i = 0; i < NN_OUTPUT_SIZE; i++) {
       float u1 = (float)rand() / (float)RAND_MAX;
       float u2 = (float)rand() / (float)RAND_MAX;

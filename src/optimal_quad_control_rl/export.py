@@ -132,6 +132,13 @@ def emit_controller(output_dir: str):
     return str(out / "nn_controller.c"), str(out / "nn_controller.h")
 
 
+class NNCtx(ctypes.Structure):
+    _fields_ = [
+        ("target_gate_index", ctypes.c_uint8),
+        ("deterministic", ctypes.c_bool),
+    ]
+
+
 def build_library(output_dir: str) -> ctypes.CDLL:
     abs_dir = str(Path(output_dir).resolve())
     subprocess.run("gcc -fPIC -c *.c", shell=True, cwd=abs_dir, check=True)
@@ -147,12 +154,17 @@ def build_library(output_dir: str) -> ctypes.CDLL:
         ctypes.POINTER(ctypes.c_float),
         ctypes.POINTER(ctypes.c_float),
     ]
-    lib.nn_set_deterministic.argtypes = [ctypes.c_bool]
+    lib.nn_ctx_init.restype = NNCtx
+    lib.nn_reset.argtypes = [ctypes.POINTER(NNCtx)]
+    lib.nn_reset.restype = None
+    lib.nn_set_deterministic.argtypes = [ctypes.POINTER(NNCtx), ctypes.c_bool]
     lib.nn_set_deterministic.restype = None
     lib.nn_control.argtypes = [
+        ctypes.POINTER(NNCtx),
         ctypes.POINTER(ctypes.c_float),
         ctypes.POINTER(ctypes.c_float),
     ]
+    lib.nn_control.restype = None
     return lib
 
 
@@ -170,11 +182,11 @@ def torch_network_infer(network: nn.Sequential, x: np.ndarray) -> np.ndarray:
 
 
 def nn_control_c(
-    lib: ctypes.CDLL, x: np.ndarray, w_min_n: float, w_max_n: float
+    lib: ctypes.CDLL, ctx: NNCtx, x: np.ndarray, w_min_n: float, w_max_n: float
 ) -> np.ndarray:
     x = np.array(x, dtype=np.float32)
     x[12:16] = (x[12:16] + 1) / 2 * (w_max_n - w_min_n) + w_min_n
     c_in = (ctypes.c_float * len(x))(*x)
     c_out = (ctypes.c_float * 4)()
-    lib.nn_control(c_in, c_out)
+    lib.nn_control(ctypes.byref(ctx), c_in, c_out)
     return (np.array(c_out[:]) * 2) - 1

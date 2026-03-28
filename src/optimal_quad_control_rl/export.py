@@ -255,7 +255,10 @@ def generate_rust(
             f"let w{i} = SMatrixView::<f32, {out_sz}, {in_sz}>::from_slice(&WEIGHTS_FC{i}_DATA);",
             f"let b{i} = SVector::<f32, {out_sz}>::from_column_slice(&BIASES_FC{i}_DATA);",
         ]
-        linear_expr = f"linear(&w{i}, &b{i}, &{prev_var})"
+        # First layer: prev_var is "x" which is already &SVector — pass directly.
+        # Later layers: prev_var is an owned SVector — borrow it.
+        input_ref = prev_var if i == 1 else f"&{prev_var}"
+        linear_expr = f"linear(&w{i}, &b{i}, {input_ref})"
         if act == "relu":
             rs_forward_steps.append(f"let {out_var} = relu(&{linear_expr});")
         elif act == "tanh":

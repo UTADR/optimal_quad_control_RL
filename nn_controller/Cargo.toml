@@ -9,5 +9,6 @@ crate-type = ["cdylib"]
 
 [dependencies]
 drone_controller = { path = "../drone_controller" }
+nalgebra = { version = "0.34.1", default-features = false }
 pyo3 = { version = "0.23", features = ["extension-module"] }
 rand = "0.8"

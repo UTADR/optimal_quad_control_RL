@@ -97,6 +97,7 @@ name = "nn_controller"
 version = "0.1.0"
 dependencies = [
  "drone_controller",
+ "nalgebra",
  "pyo3",
  "rand",
 ]

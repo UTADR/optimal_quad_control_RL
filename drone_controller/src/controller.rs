@@ -1,3 +1,7 @@
+use nalgebra::{Rotation3, Vector3, Vector4};
+
+use crate::utils::BoxSpace;
+
 // Weights, deployment constants, and nn_forward — written by export.py, built via build.rs.
 include!(concat!(env!("OUT_DIR"), "/generated.rs"));
 
@@ -23,14 +27,14 @@ impl ADRController {
     /// Returns normalised motor commands in `[0, 1]`.
     pub fn control<F: FnMut(&mut [f32])>(
         &mut self,
-        world_state: &[f32; 16],
+        world_state: &SVector<f32, 16>,
         mut on_output: F,
-    ) -> [f32; 4] {
-        let pos = [world_state[0], world_state[1], world_state[2]];
-        let vel = [world_state[3], world_state[4], world_state[5]];
+    ) -> Vector4<f32> {
+        let pos = world_state.fixed_rows::<3>(0);
+        let vel = world_state.fixed_rows::<3>(3);
         let yaw = world_state[8];
 
-        let mut target_pos = GATE_POS[self.target_gate as usize];
+        let mut target_pos = Vector3::from(GATE_POS[self.target_gate as usize]);
         let mut target_yaw = GATE_YAW[self.target_gate as usize];
 
         // Advance gate index when drone crosses the gate plane.
@@ -38,18 +42,15 @@ impl ADRController {
             + libm::sinf(target_yaw) * (pos[1] - target_pos[1]);
         if dot > 0.0 {
             self.target_gate = (self.target_gate + 1) % NUM_GATES as u8;
-            target_pos = GATE_POS[self.target_gate as usize];
+            target_pos = GATE_POS[self.target_gate as usize].into();
             target_yaw = GATE_YAW[self.target_gate as usize];
         }
 
-        let (c, s) = (libm::cosf(target_yaw), libm::sinf(target_yaw));
+        let pos_diff = pos - target_pos;
 
-        let pos_rel = [
-            c * (pos[0] - target_pos[0]) + s * (pos[1] - target_pos[1]),
-            -s * (pos[0] - target_pos[0]) + c * (pos[1] - target_pos[1]),
-            pos[2] - target_pos[2],
-        ];
-        let vel_rel = [c * vel[0] + s * vel[1], -s * vel[0] + c * vel[1], vel[2]];
+        let world_to_gate_yaw = Rotation3::from_axis_angle(&Vector3::z_axis(), -target_yaw);
+        let pos_rel = world_to_gate_yaw * pos_diff;
+        let vel_rel = world_to_gate_yaw * vel;
         let mut yaw_rel = yaw - target_yaw;
         while yaw_rel > core::f32::consts::PI {
             yaw_rel -= 2.0 * core::f32::consts::PI;
@@ -58,9 +59,9 @@ impl ADRController {
             yaw_rel += 2.0 * core::f32::consts::PI;
         }
 
-        let mut nn_input = [0f32; NN_INPUT_SIZE];
-        nn_input[0..3].copy_from_slice(&pos_rel);
-        nn_input[3..6].copy_from_slice(&vel_rel);
+        let mut nn_input = SVector::<f32, NN_INPUT_SIZE>::zeros();
+        nn_input.fixed_rows_mut::<3>(0).copy_from(&pos_rel);
+        nn_input.fixed_rows_mut::<3>(3).copy_from(&vel_rel);
         nn_input[6] = world_state[6];
         nn_input[7] = world_state[7];
         nn_input[8] = yaw_rel;
@@ -79,14 +80,10 @@ impl ADRController {
         }
 
         let mut nn_output = nn_forward(&nn_input);
-        on_output(&mut nn_output);
+        on_output(nn_output.as_mut_slice());
 
-        let mut motor_cmds = [0f32; NN_OUTPUT_SIZE];
-        for i in 0..NN_OUTPUT_SIZE {
-            let v = nn_output[i].clamp(-1.0, U_MAX);
-            motor_cmds[i] = (v + 1.0) / 2.0;
-        }
-        motor_cmds
+        const BOX: BoxSpace<NN_OUTPUT_SIZE> = BoxSpace::new(-1.0, U_MAX);
+        BOX.unproject(&nn_output)
     }
 }
 

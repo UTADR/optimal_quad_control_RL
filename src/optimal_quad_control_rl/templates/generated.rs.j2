@@ -61,12 +61,9 @@ pub const START_YAW: f32 = {{ start_yaw }};
 use crate::nn::{ {{ act_imports }} };
 use nalgebra::{SMatrixView, SVector};
 
-pub fn nn_forward(x: &[f32; NN_INPUT_SIZE]) -> [f32; NN_OUTPUT_SIZE] {
-    let x = SVector::<f32, NN_INPUT_SIZE>::from_column_slice(x);
+pub fn nn_forward(x: &nalgebra::SVector<f32, NN_INPUT_SIZE>) -> nalgebra::SVector<f32, NN_OUTPUT_SIZE> {
 {% for step in rs_forward_steps %}
     {{ step }}
 {% endfor %}
-    let mut result = [0f32; NN_OUTPUT_SIZE];
-    result.copy_from_slice(out.as_slice());
-    result
+    out
 }

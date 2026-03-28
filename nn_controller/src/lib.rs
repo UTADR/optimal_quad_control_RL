@@ -36,9 +36,9 @@ impl NNController {
             pyo3::exceptions::PyValueError::new_err("world_state must have exactly 16 elements")
         })?;
         let cmds = if deterministic {
-            self.inner.control(&ws, |_| {})
+            self.inner.control(&ws.into(), |_| {})
         } else {
-            self.inner.control(&ws, |out| {
+            self.inner.control(&ws.into(), |out| {
                 for (o, &std) in out.iter_mut().zip(OUTPUT_STD.iter()) {
                     let u1: f32 = rand::random();
                     let u2: f32 = rand::random();
@@ -46,7 +46,7 @@ impl NNController {
                 }
             })
         };
-        Ok(cmds.to_vec())
+        Ok(cmds.data.as_slice().to_vec())
     }
 }
 

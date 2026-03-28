@@ -34,7 +34,7 @@ pub const START_YAW: f32 = 0.0;
 use crate::nn::{linear, relu};
 use nalgebra::{SMatrixView, SVector};
 
-fn nn_forward(x: &nalgebra::SVector<f32, NN_INPUT_SIZE>) -> nalgebra::SVector<f32, NN_OUTPUT_SIZE> {
+pub fn nn_forward(x: &nalgebra::SVector<f32, NN_INPUT_SIZE>) -> nalgebra::SVector<f32, NN_OUTPUT_SIZE> {
     let w1 = SMatrixView::<f32, HIDDEN_SIZE, NN_INPUT_SIZE>::from_slice(&WEIGHTS_FC1_DATA);
     let b1 = SVector::<f32, HIDDEN_SIZE>::from_column_slice(&BIASES_FC1_DATA);
     let h1 = relu(&linear(&w1, &b1, x));

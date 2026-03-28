@@ -1,4 +1,5 @@
 use drone_controller::{ADRController, OUTPUT_STD};
+use nalgebra::SVector;
 use pyo3::prelude::*;
 
 /// Python-visible wrapper around the gate-traversal RL controller.
@@ -50,8 +51,29 @@ impl NNController {
     }
 }
 
+/// Run the bare neural-network forward pass (no controller state, no RPM normalisation).
+///
+/// Args:
+///     x: NN_INPUT_SIZE floats (the observation vector).
+///
+/// Returns:
+///     NN_OUTPUT_SIZE raw network outputs (before clamping/scaling).
+#[pyfunction]
+fn nn_forward_raw(x: Vec<f32>) -> PyResult<Vec<f32>> {
+    let input: [f32; drone_controller::NN_INPUT_SIZE] = x.try_into().map_err(|_| {
+        pyo3::exceptions::PyValueError::new_err(format!(
+            "x must have exactly {} elements",
+            drone_controller::NN_INPUT_SIZE
+        ))
+    })?;
+    let sv = SVector::<f32, { drone_controller::NN_INPUT_SIZE }>::from_column_slice(&input);
+    let out = drone_controller::nn_forward(&sv);
+    Ok(out.data.as_slice().to_vec())
+}
+
 #[pymodule]
 fn nn_controller(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<NNController>()?;
+    m.add_function(wrap_pyfunction!(nn_forward_raw, m)?)?;
     Ok(())
 }
